@@ -34,5 +34,7 @@ pip install fastapi uvicorn pydantic
 ```
 
 ## Start the development server using Uvicorn
-
+```
 uvicorn app:app --reload
+
+```
