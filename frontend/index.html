@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Information Form</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="main">
+        <h1>Student Information Form</h1>
+        <form id="form" class="form">
+            <input type="text" name="name" placeholder="Enter your name">
+            <input type="number" name="age" placeholder="Enter your age">
+            <input type="text" name="course" placeholder="Enter your course">
+            <input type="date" name="birth_date">
+            <input type="text" name="address" placeholder="Enter your address">
+            <input type="number" name="contact_number" placeholder="Enter your contact number">
+            <button id="btn" type="submit">Submit</button>
+        </form>
+        <div class="table-container">
+            <input type="search" name="" id="searchInput" placeholder="Search student...">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Age</th>
+                        <th>Course</th>
+                        <th>Birth of Date</th>
+                        <th>Address</th>
+                        <th>Contact</th>
+                        <th style="border-right: transparent;">
+                        <th style="border-left: transparent;">
+                            Action
+                        </th>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="studentInfo"></tbody>
+            </table>
+        </div>
+
+        <div class="myModal" id="modal">
+            <div class="modal-content">
+                <button class="close-btn" id="close-btn">&times;</button>
+                <h2>Edit Student</h2>
+                <form id="editStudentForm">
+                    <input type="hidden" id="edit-id">
+                    <input type="text" id="edit-name" name="name" placeholder="Enter your name">
+                    <input type="number" id="edit-age" name="age" placeholder="Enter your age">
+                    <input type="text" id="edit-course" name="course" placeholder="Enter your course">
+                    <input type="date" id="edit-birth-date" name="birth_date">
+                    <input type="text" id="edit-address" name="address" placeholder="Enter your address">
+                    <input type="number" id="edit-contact-number" name="contact_number"
+                        placeholder="Enter your contact number">
+                    <button type="submit" class="save-btn">Save Changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="./index.js?=v1"></script>
+</body>
+
+</html>
