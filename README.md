@@ -21,14 +21,14 @@ Before you begin, ensure you have the following installed on you system:
 ```
 Follow these steps to set up and run the project locally:
 
-1. **Clone Repository:**
+1. Clone Repository
 git clone https://github.com/jasperayawan/Student_Information_form
 
-2. **Create and activate a virtual environment(env):**
+2. Create and activate a virtual environment(env)
 python -m venv venv
 .venv\Scripts\Activate.ps1
 
-3. **Installtion dependencies:**
+3. Installtion dependencies
 pip install fastapi uvicorn pydantic
 
 ```
