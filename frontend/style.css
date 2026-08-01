@@ -3,6 +3,7 @@ body {
     padding: 0;
     min-height: 100vh;
     font-family: sans-serif;
+    background-color: #1e1e1e;
 }
 
 .main {
@@ -76,9 +77,10 @@ table {
 
 th,
 td {
-    border: 1px solid #000000;
+    border: 1px solid #ffffff;
     padding: 8px;
     text-align: left;
+    color: #f4f4f4;
 }
 
 .myModal {
@@ -86,9 +88,11 @@ td {
     height: 100%;
     display: none;
     background-color: #00000044;
-    width: 100%;
+    width: 0px;
     justify-content: center;
     align-items: center;
+    animation-duration: 20ms;
+    animation: anim forwards 20ms ease-in-out;
 }
 
 .myModal .modal-content {
@@ -130,4 +134,16 @@ td {
     outline: none;
     background-color: yellowgreen;
     cursor: pointer;
+}
+
+@keyframes anim {
+    0% {
+        width: 0%;
+        opacity: 0;
+    }
+
+    100% {
+        width: 100%;
+        opacity: 1;
+    }
 }

@@ -78,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
 
                 const result = await response.json();
+                alert(result.message)
                 await loadStudentsInfo();
             } catch (err) {
                 console.log(err)
@@ -91,6 +92,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const formData = new FormData(studentForm);
         const body = Object.fromEntries(formData)
+        console.log(body)
+
+        if (!body.name || !body.age || !body.course || !body.birth_date || !body.address || !body.contact_number) {
+            alert("Fill in the required field")
+            return;
+        }
 
         try {
             const res = await fetch(`${API}/students`, {
@@ -102,6 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             if (res.ok) {
                 const result = await res.json();
+                alert(result.message)
                 studentForm.reset();
                 await loadStudentsInfo()
             }
@@ -129,6 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             if (res.ok) {
                 const result = await res.json();
+                alert(result.message)
                 modal.style.display = "none"
                 await loadStudentsInfo()
             }

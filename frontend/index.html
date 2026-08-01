@@ -10,7 +10,7 @@
 
 <body>
     <div class="main">
-        <h1>Student Information Form</h1>
+        <h1 style="color: #ffffff;">Student Information Form</h1>
         <form id="form" class="form">
             <input type="text" name="name" placeholder="Enter your name">
             <input type="number" name="age" placeholder="Enter your age">
@@ -49,13 +49,13 @@
                 <h2>Edit Student</h2>
                 <form id="editStudentForm">
                     <input type="hidden" id="edit-id">
-                    <input type="text" id="edit-name" name="name" placeholder="Enter your name">
-                    <input type="number" id="edit-age" name="age" placeholder="Enter your age">
-                    <input type="text" id="edit-course" name="course" placeholder="Enter your course">
-                    <input type="date" id="edit-birth-date" name="birth_date">
-                    <input type="text" id="edit-address" name="address" placeholder="Enter your address">
+                    <input type="text" id="edit-name" name="name" placeholder="Enter your name" required>
+                    <input type="number" id="edit-age" name="age" placeholder="Enter your age" required>
+                    <input type="text" id="edit-course" name="course" placeholder="Enter your course" required>
+                    <input type="date" id="edit-birth-date" name="birth_date" required>
+                    <input type="text" id="edit-address" name="address" placeholder="Enter your address" required>
                     <input type="number" id="edit-contact-number" name="contact_number"
-                        placeholder="Enter your contact number">
+                        placeholder="Enter your contact number" required>
                     <button type="submit" class="save-btn">Save Changes</button>
                 </form>
             </div>

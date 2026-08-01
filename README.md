@@ -12,7 +12,7 @@
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed on you system:
+Before you begin, ensure you have the following installed on your system:
 * [Python](https://www.python.org/) (v3.9 or higher recommended)
 * `pip` (Python package manager)
 
