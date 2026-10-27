@@ -3,65 +3,81 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Information Form</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Paulino Dari National High School</title>
+    <link rel="stylesheet" href="style.css?v=8">
 </head>
 
 <body>
-    <div class="main">
-        <h1 style="color: #ffffff;">Student Information Form</h1>
-        <form id="form" class="form">
-            <input type="text" name="name" placeholder="Enter your name">
-            <input type="number" name="age" placeholder="Enter your age">
-            <input type="text" name="course" placeholder="Enter your course">
-            <input type="date" name="birth_date">
-            <input type="text" name="address" placeholder="Enter your address">
-            <input type="number" name="contact_number" placeholder="Enter your contact number">
-            <button id="btn" type="submit">Submit</button>
-        </form>
-        <div class="table-container">
-            <input type="search" name="" id="searchInput" placeholder="Search student...">
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Age</th>
-                        <th>Course</th>
-                        <th>Birth of Date</th>
-                        <th>Address</th>
-                        <th>Contact</th>
-                        <th style="border-right: transparent;">
-                        <th style="border-left: transparent;">
-                            Action
-                        </th>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody id="studentInfo"></tbody>
-            </table>
-        </div>
-
-        <div class="myModal" id="modal">
-            <div class="modal-content">
-                <button class="close-btn" id="close-btn">&times;</button>
-                <h2>Edit Student</h2>
-                <form id="editStudentForm">
-                    <input type="hidden" id="edit-id">
-                    <input type="text" id="edit-name" name="name" placeholder="Enter your name" required>
-                    <input type="number" id="edit-age" name="age" placeholder="Enter your age" required>
-                    <input type="text" id="edit-course" name="course" placeholder="Enter your course" required>
-                    <input type="date" id="edit-birth-date" name="birth_date" required>
-                    <input type="text" id="edit-address" name="address" placeholder="Enter your address" required>
-                    <input type="number" id="edit-contact-number" name="contact_number"
-                        placeholder="Enter your contact number" required>
-                    <button type="submit" class="save-btn">Save Changes</button>
-                </form>
+    <!-- Sign in -->
+    <div class="login-view" id="login-view" hidden>
+        <div class="login-card">
+            <div class="login-brand">
+                <span class="brand-mark" aria-hidden="true"></span>
+                <span>Paulino Dari National High School</span>
             </div>
+            <h1 id="login-title">Sign in</h1>
+            <form id="login-form" class="form" aria-labelledby="login-title">
+                <label class="field"><span>Username</span>
+                    <input type="text" name="username" autocomplete="username" required>
+                </label>
+                <label class="field"><span>Password</span>
+                    <input type="password" name="password" autocomplete="current-password" required>
+                </label>
+                <p class="form-error" id="login-error" role="alert" hidden></p>
+                <div class="dialog-actions">
+                    <button id="btn" type="submit" class="btn btn-primary">Sign in</button>
+                </div>
+            </form>
         </div>
     </div>
-    <script src="./index.js?=v1"></script>
+
+    <!-- Application -->
+    <div class="layout" id="app-view" hidden>
+        <header class="appbar">
+            <button type="button" class="icon-btn menu-toggle" id="menu-toggle" aria-label="Open navigation" aria-expanded="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
+            </button>
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span class="appbar-title">Paulino Dari National High School</span>
+            <div class="account">
+                <button type="button" class="avatar" id="account-button" aria-haspopup="menu" aria-expanded="false" aria-label="Account menu"></button>
+                <div class="menu" id="account-menu" role="menu" hidden>
+                    <div class="menu-header">
+                        <strong id="account-name"></strong>
+                        <span id="account-role" class="muted"></span>
+                    </div>
+                    <button type="button" role="menuitem" id="change-password">Change password</button>
+                    <button type="button" role="menuitem" id="logout">Sign out</button>
+                </div>
+            </div>
+        </header>
+        <aside class="sidebar" id="sidebar">
+            <nav id="nav" aria-label="Main navigation"></nav>
+        </aside>
+        <div class="scrim" id="scrim" hidden></div>
+        <main class="content">
+            <h1 id="page-title" class="page-title"></h1>
+            <section id="page" class="page"></section>
+        </main>
+    </div>
+
+    <div id="dialog-root"></div>
+    <div id="toast-root" class="toasts" aria-live="polite"></div>
+
+    <script src="./js/api.js?v=8"></script>
+    <script src="./js/ui.js?v=8"></script>
+    <script src="./js/pages/dashboard.js?v=8"></script>
+    <script src="./js/pages/students.js?v=8"></script>
+    <script src="./js/pages/instructors.js?v=8"></script>
+    <script src="./js/pages/courses.js?v=8"></script>
+    <script src="./js/pages/subjects.js?v=8"></script>
+    <script src="./js/pages/scheduling.js?v=8"></script>
+    <script src="./js/pages/classrooms.js?v=8"></script>
+    <script src="./js/pages/enrollment.js?v=8"></script>
+    <script src="./js/pages/users.js?v=8"></script>
+    <script src="./js/pages/settings.js?v=8"></script>
+    <script src="./index.js?v=8"></script>
 </body>
 
 </html>

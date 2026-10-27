@@ -1,5 +1,5 @@
-from models.student_table import create_student_table
+from models.migrations import run_migrations
 
 
 def initialize_tables():
-    create_student_table()
+    run_migrations()
