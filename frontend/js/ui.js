@@ -60,6 +60,11 @@ const UI = (() => {
         `<button type="button" class="btn btn-sm btn-${kind}" data-action="${action}" data-id="${esc(id)}">${esc(label)}</button>`
     const options = (list, value, label) => list.map(item => ({ value: item[value], label: label(item) }))
 
+    // Course list built from rows that carry course_id/course_code, for roles
+    // (instructors) that can't load the Courses module itself.
+    const coursesFrom = rows => [...new Map(rows.map(r => [r.course_id, { id: r.course_id, code: r.course_code }])).values()]
+        .sort((a, b) => a.code.localeCompare(b.code))
+
     // ---------- Feedback ----------
 
     function toast(message, type = "success") {
@@ -137,6 +142,24 @@ const UI = (() => {
         if (f.type === "checkbox") {
             return `<label class="check ${f.full ? "full" : ""}"><input type="checkbox" ${common} ${value ? "checked" : ""}> ${esc(f.label)}</label>`
         }
+        if (f.type === "photo") {
+            // Picker only; the page uploads the chosen file itself (see students.js).
+            return `<div class="field full photo-field">
+                <span>${esc(f.label)}</span>
+                <div class="photo-picker">
+                    <span class="avatar-img avatar-lg" data-photo-preview>${icon("students", "icon")}</span>
+                    <div class="photo-actions">
+                        <div class="photo-buttons">
+                            <label class="btn btn-sm">Choose photo
+                                <input type="file" name="${esc(f.name)}" accept="image/jpeg,image/png,image/webp" class="visually-hidden">
+                            </label>
+                            <button type="button" class="btn btn-sm btn-danger" data-photo-remove hidden>Remove</button>
+                        </div>
+                        <small class="muted">JPG, PNG or WebP, up to 2 MB.</small>
+                    </div>
+                </div>
+            </div>`
+        }
         let input
         if (f.type === "select") {
             const blank = f.blank === false ? "" : `<option value="">${esc(f.blank || "Select…")}</option>`
@@ -171,7 +194,7 @@ const UI = (() => {
 
     function readForm(form, fields) {
         const data = {}
-        fields.filter(f => !f.display && !f.disabled).forEach(f => {
+        fields.filter(f => !f.display && !f.disabled && f.type !== "photo").forEach(f => {
             const el = form.elements[f.name]
             if (f.type === "checkbox") data[f.name] = el.checked
             else if (f.type === "number" || f.numeric) data[f.name] = el.value === "" ? null : Number(el.value)
@@ -195,7 +218,7 @@ const UI = (() => {
         const submit = form.querySelector("[type=submit]")
         form.querySelector("[data-cancel]").addEventListener("click", dialog.close)
         if (afterRender) afterRender(form)
-        const first = form.querySelector("input:not([readonly]), select, textarea")
+        const first = form.querySelector("input:not([readonly]):not([type=file]), select, textarea")
         if (first) first.focus()
 
         form.addEventListener("submit", async e => {
@@ -290,6 +313,7 @@ const UI = (() => {
                 ? table(columns, pageRows, actions, { pageSize: Infinity })
                 : empty(state.rows.length ? "No records match your search or filters." : emptyText)
             pagerEl.innerHTML = pagerHtml(state.page, pageSize, list.length)
+            loadPhotos(tableEl)
         }
 
         const searchEl = container.querySelector(".search")
@@ -357,13 +381,38 @@ const UI = (() => {
         }
     }
 
+    // Round avatar: the student's photo when they have one, initials otherwise.
+    // "Jasper Ayawan" -> "JA"; a single word gives its first two letters ("ayawan" -> "AY").
+    function initials(name) {
+        const words = String(name || "?").trim().split(/\s+/)
+        return (words.length > 1 ? words[0][0] + words[1][0] : words[0].slice(0, 2)).toUpperCase()
+    }
+
+    function avatar(student, size = "sm") {
+        const letters = initials(student.name)
+        const photo = student.photo ? ` data-photo="/students/${student.id}/photo?v=${encodeURIComponent(student.photo)}"` : ""
+        return `<span class="avatar-img avatar-${size}"${photo} aria-hidden="true">${esc(letters)}</span>`
+    }
+
+    function showPhoto(el, url) {
+        el.style.backgroundImage = `url("${url}")`
+        el.classList.add("has-photo")
+    }
+
+    async function loadPhotos(root) {
+        root.querySelectorAll("[data-photo]:not(.has-photo)").forEach(async el => {
+            const url = await apiImage(el.dataset.photo)
+            if (url) showPhoto(el, url)
+        })
+    }
+
     function details(pairs) {
         return `<dl class="details">${pairs.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v ?? "") || '<span class="muted">—</span>'}</dd>`).join("")}</dl>`
     }
 
     return {
-        esc, icon, fmtTime, days, timeRange, slotText, overlaps, seats, badge, button, options, toMinutes,
+        esc, icon, coursesFrom, fmtTime, days, timeRange, slotText, overlaps, seats, badge, button, options, toMinutes,
         toast, loading, empty, errorState, openDialog, confirmAction, formDialog, formHtml, readForm, table, pagerHtml,
-        listView, weekGrid, tabs, run, details, PATTERN_DAYS,
+        listView, weekGrid, tabs, run, details, initials, avatar, showPhoto, loadPhotos, PATTERN_DAYS,
     }
 })()

@@ -198,6 +198,75 @@ class StudentTests(unittest.TestCase):
         self.assertEqual(res.status_code, 409)
 
 
+PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
+
+
+class StudentPhotoTests(unittest.TestCase):
+    def test_account_badge_shows_student_photo_and_name(self):
+        student = create_student(course_ids()[0], name="Badge Student")
+        name = unique("badge")
+        make_user(name, "student", student_id=student["id"])
+        headers = login(name)
+        me = client.get("/auth/me", headers=headers).json()["data"]
+        self.assertEqual((me["display_name"], me["photo"]), ("Badge Student", None))
+        client.put(f"/students/{student['id']}/photo", files={"photo": ("p.png", PNG_BYTES, "image/png")}, headers=ADMIN)
+        me = client.get("/auth/me", headers=headers).json()["data"]
+        self.assertTrue(me["photo"])
+        self.assertEqual(client.get(f"/students/{student['id']}/photo", headers=headers).status_code, 200)
+        admin = client.get("/auth/me", headers=ADMIN).json()["data"]
+        self.assertEqual((admin["display_name"], admin["photo"]), ("admin", None))
+
+    def test_upload_view_replace_and_delete(self):
+        from core.uploads import PHOTO_DIR
+        course = course_ids()[0]
+        student, other = create_student(course), create_student(course)
+        url = f"/students/{student['id']}/photo"
+        self.assertEqual(client.get(url, headers=ADMIN).status_code, 404)
+
+        res = client.put(url, files={"photo": ("me.png", PNG_BYTES, "image/png")}, headers=ADMIN)
+        self.assertEqual(res.status_code, 200, res.text)
+        first = res.json()["data"]["photo"]
+        self.assertTrue((PHOTO_DIR / first).is_file())
+        res = client.get(url, headers=ADMIN)
+        self.assertEqual((res.status_code, res.headers["content-type"], res.content), (200, "image/png", PNG_BYTES))
+
+        # The student may see their own photo; other students and instructors may not.
+        def account(role, **link):
+            name = unique("photo")
+            make_user(name, role, **link)
+            return login(name)
+        own = account("student", student_id=student["id"])
+        stranger = account("student", student_id=other["id"])
+        teacher = account("instructor", instructor_id=create_instructor()["id"])
+        self.assertEqual(client.get(url, headers=own).status_code, 200)
+        self.assertEqual(client.get(url, headers=stranger).status_code, 403)
+        self.assertEqual(client.get(url, headers=teacher).status_code, 403)
+        self.assertEqual(client.put(url, files={"photo": ("x.png", PNG_BYTES, "image/png")},
+                                    headers=own).status_code, 403)
+
+        # Content is checked, not the file name or declared type.
+        fake = client.put(url, files={"photo": ("evil.png", b"<script>alert(1)</script>", "image/png")}, headers=ADMIN)
+        self.assertEqual(fake.status_code, 422)
+        big = client.put(url, files={"photo": ("big.png", PNG_BYTES + b"0" * (2 * 1024 * 1024), "image/png")},
+                         headers=ADMIN)
+        self.assertEqual(big.status_code, 413)
+
+        # Replacing removes the old file; editing details keeps the photo.
+        jpeg = b"\xff\xd8\xff\xe0" + b"\x00" * 64
+        second = client.put(url, files={"photo": ("me.jpg", jpeg, "image/jpeg")}, headers=ADMIN).json()["data"]["photo"]
+        self.assertFalse((PHOTO_DIR / first).exists())
+        update = student_payload(course, email=student["email"])
+        self.assertEqual(client.put(f"/students/{student['id']}", json=update, headers=ADMIN).json()["data"]["photo"], second)
+
+        self.assertEqual(client.delete(url, headers=ADMIN).status_code, 200)
+        self.assertFalse((PHOTO_DIR / second).exists())
+        self.assertEqual(client.get(url, headers=ADMIN).status_code, 404)
+
+        third = client.put(url, files={"photo": ("me.png", PNG_BYTES, "image/png")}, headers=ADMIN).json()["data"]["photo"]
+        self.assertEqual(client.delete(f"/students/{student['id']}", headers=ADMIN).status_code, 200)
+        self.assertFalse((PHOTO_DIR / third).exists())
+
+
 class InstructorAndCatalogTests(unittest.TestCase):
     def test_instructor_crud(self):
         instructor = create_instructor()
@@ -386,6 +455,7 @@ class PermissionTests(unittest.TestCase):
         self.assertEqual(client.get("/instructors/", headers=h).status_code, 403)
         self.assertEqual(client.get("/users/", headers=h).status_code, 403)
         self.assertEqual(client.get("/sections", headers=h).status_code, 200)
+        self.assertEqual(client.get("/courses/", headers=h).status_code, 403)
 
         me = client.get("/students/me", headers=h).json()["data"]
         self.assertEqual(me["id"], self.student["id"])
@@ -400,6 +470,20 @@ class PermissionTests(unittest.TestCase):
         res = client.post("/enrollments/me", json={"section_id": self.own_section["id"]}, headers=h)
         self.assertEqual(res.status_code, 201, res.text)
         self.assertEqual(len(client.get("/enrollments/me", headers=h).json()["data"]), 1)
+
+    def test_student_sees_only_enrolled_subjects(self):
+        h = self.student_headers
+        other_subject = create_subject(self.course)
+        create_section(other_subject, pattern="TTH")
+        enrolled = {e["subject_id"] for e in client.get("/enrollments/me", headers=h).json()["data"]}
+        listed = {s["id"]: s for s in client.get("/subjects/", headers=h).json()["data"]}
+        self.assertEqual(set(listed), enrolled)
+        self.assertNotIn(other_subject, listed)
+        self.assertEqual(client.get(f"/subjects/{other_subject}", headers=h).status_code, 404)
+        for subject_id in listed:
+            sections = client.get(f"/subjects/{subject_id}", headers=h).json()["data"]["sections"]
+            mine = {e["id"] for e in client.get("/enrollments/me", headers=h).json()["data"]}
+            self.assertTrue(sections and {s["id"] for s in sections} <= mine)
 
     def test_self_enrollment_can_be_closed(self):
         settings = client.get("/settings", headers=ADMIN).json()["data"]
@@ -421,12 +505,75 @@ class PermissionTests(unittest.TestCase):
         self.assertEqual(client.post("/sections", json=body, headers=h).status_code, 403)
         self.assertEqual(client.put("/settings", json={}, headers=h).status_code, 403)
 
-    def test_college_admin_is_read_only(self):
+    def test_instructor_sees_only_assigned_subjects(self):
+        h = self.instructor_headers
+        unassigned = create_subject(self.course)
+        codes = {s["id"]: s for s in client.get("/subjects/", headers=h).json()["data"]}
+        self.assertIn(self.subject, codes)
+        self.assertNotIn(unassigned, codes)
+        # Every listed subject really has a section taught by this instructor.
+        mine = {s["subject_id"] for s in client.get("/instructors/me", headers=h).json()["data"]["sections"]}
+        self.assertEqual(set(codes), mine)
+        # Only their own section of that subject is counted and listed.
+        self.assertEqual(codes[self.subject]["section_count"], 1)
+        detail = client.get(f"/subjects/{self.subject}", headers=h).json()["data"]
+        self.assertEqual([s["id"] for s in detail["sections"]], [self.own_section["id"]])
+        self.assertEqual(client.get(f"/subjects/{unassigned}", headers=h).status_code, 404)
+        # Instructors have no Courses module.
+        self.assertEqual(client.get("/courses/", headers=h).status_code, 403)
+        # Administrators still see every subject.
+        all_ids = {s["id"] for s in client.get("/subjects/", headers=ADMIN).json()["data"]}
+        self.assertTrue({self.subject, unassigned} <= all_ids)
+
+    def test_instructor_sees_enrolled_students_of_own_sections(self):
+        h = self.instructor_headers
+        subject = create_subject(self.course)
+        mine = create_section(subject, instructor_id=self.instructor["id"], pattern="TTH")
+        other = create_section(subject)
+        a, b = create_student(self.course), create_student(self.course)
+        for student, section in ((a, mine), (b, other)):
+            res = client.post("/enrollments/", json={"student_id": student["id"], "section_id": section["id"]},
+                              headers=ADMIN)
+            self.assertEqual(res.status_code, 201, res.text)
+
+        row = next(s for s in client.get("/subjects/", headers=h).json()["data"] if s["id"] == subject)
+        self.assertEqual(row["enrolled_count"], 1)
+        students = client.get(f"/subjects/{subject}/students", headers=h).json()["data"]
+        self.assertEqual([s["student_id"] for s in students], [a["id"]])
+        # Administrators see every enrolled student; students may not look.
+        all_students = client.get(f"/subjects/{subject}/students", headers=ADMIN).json()["data"]
+        self.assertEqual({s["student_id"] for s in all_students}, {a["id"], b["id"]})
+        self.assertEqual(client.get(f"/subjects/{subject}/students", headers=self.student_headers).status_code, 403)
+
+    def test_it_admin_can_schedule_but_not_manage_records(self):
         self.assertEqual(client.get("/students/", headers=COLLEGE).status_code, 200)
         self.assertEqual(client.get("/reports/room-utilization", headers=COLLEGE).status_code, 200)
         self.assertEqual(client.post("/students/", json=student_payload(self.course),
                                      headers=COLLEGE).status_code, 403)
         self.assertEqual(client.get("/users/", headers=COLLEGE).status_code, 403)
+        self.assertEqual(client.post("/subjects/", json={"code": "ITADM1", "title": "Test", "units": 3,
+                                                         "course_id": self.course}, headers=COLLEGE).status_code, 403)
+        self.assertEqual(client.put("/settings", json={}, headers=COLLEGE).status_code, 403)
+
+        # Scheduling: create a class, then reassign its instructor and room.
+        teacher, other_teacher = create_instructor(), create_instructor()
+        room, other_room = next_room(), next_room()
+        body = {"subject_id": self.subject, "section_code": unique("IT"), "time_slot_id": slot_id("TTH"),
+                "instructor_id": teacher["id"], "classroom_id": room, "capacity": 30}
+        res = client.post("/sections", json=body, headers=COLLEGE)
+        self.assertEqual(res.status_code, 201, res.text)
+        section_id = res.json()["data"]["id"]
+        body.update(instructor_id=other_teacher["id"], classroom_id=other_room)
+        res = client.put(f"/sections/{section_id}", json=body, headers=COLLEGE)
+        self.assertEqual(res.status_code, 200, res.text)
+        self.assertEqual((res.json()["data"]["instructor_id"], res.json()["data"]["classroom_id"]),
+                         (other_teacher["id"], other_room))
+        # The same conflict rules apply to them as to administrators.
+        clash = dict(body, section_code=unique("IT"), classroom_id=next_room())
+        self.assertEqual(client.post("/sections", json=clash, headers=COLLEGE).status_code, 409)
+        slot = {"pattern": "MWF", "start_time": "13:00", "end_time": "14:00", "note": "IT admin"}
+        self.assertIn(client.post("/time-slots", json=slot, headers=COLLEGE).status_code, (201, 409))
+        self.assertEqual(client.delete(f"/sections/{section_id}", headers=COLLEGE).status_code, 200)
 
     def test_cannot_remove_last_admin(self):
         admin_id = next(u["id"] for u in client.get("/users/", headers=ADMIN).json()["data"]

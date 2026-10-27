@@ -16,7 +16,7 @@
   * No more than 30 students per section, and inactive instructors or rooms cannot be assigned.
 * **Classrooms:** 30 rooms (`RM-01` … `RM-30`) created on first run, availability grid per time slot, utilization report.
 * **Enrollment:** admins enroll or drop students per section; students can enroll themselves when self-enrollment is switched on.
-* **Roles:** Administrator, IT Administrator (read-only oversight), Instructor and Student. Permissions are checked on every API request.
+* **Roles:** Administrator, IT Administrator (views everything; manages class scheduling: instructors, rooms and time slots), Instructor and Student. Permissions are checked on every API request.
 * **Dashboard:** live statistics, requirement checks (4 courses, 10 subjects per course, 4 offerings per day), room utilization and instructor assignments.
 
 ## Prerequisites

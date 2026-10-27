@@ -34,6 +34,17 @@ def logout(authorization: str | None = Header(default=None), conn=Depends(get_db
 @router.get("/me")
 def me(user=Depends(get_current_user), conn=Depends(get_db)) -> dict[str, Any]:
     user["enrollment_enabled"] = get_settings(conn)["student_enrollment_enabled"]
+    # Name and photo for the account badge (top-right corner): taken from the
+    # linked student or instructor record; only students have photos.
+    user["display_name"], user["photo"] = user["username"], None
+    if user["student_id"]:
+        row = conn.execute("SELECT name, photo FROM students WHERE id = ?", (user["student_id"],)).fetchone()
+        if row:
+            user["display_name"], user["photo"] = row["name"], row["photo"]
+    elif user["instructor_id"]:
+        row = conn.execute("SELECT name FROM instructors WHERE id = ?", (user["instructor_id"],)).fetchone()
+        if row:
+            user["display_name"] = row["name"]
     return {"success": True, "data": user}
 
 

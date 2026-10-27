@@ -2,7 +2,9 @@ Pages.push({
     id: "scheduling",
     nav: "Class Scheduling",
     title: "Class Scheduling",
-    visible: () => Auth.can("sections.view"),
+    // Students browse open classes on My Enrollment instead, so they don't get
+    // this page (they keep read access to sections for enrolling).
+    visible: () => Auth.can("sections.view") && Auth.user.role !== "student",
 
     async render(el) {
         UI.tabs(el, [
@@ -19,11 +21,11 @@ Pages.push({
 
 async function renderSections(panel) {
     const canManage = Auth.can("sections.manage")
-    const [sections, courses, slots] = await Promise.all([
+    const [sections, slots] = await Promise.all([
         api("/sections").then(r => r.data),
-        api("/courses/").then(r => r.data),
         api("/time-slots").then(r => r.data),
     ])
+    const courses = Auth.can("courses.view") ? (await api("/courses/")).data : UI.coursesFrom(sections)
     // Lists needed only for assigning instructors and rooms.
     const [subjects, instructors, rooms] = canManage ? await Promise.all([
         api("/subjects/").then(r => r.data),
@@ -127,7 +129,8 @@ async function renderSections(panel) {
 }
 
 async function renderWeek(panel) {
-    const [sections, courses] = await Promise.all([api("/sections").then(r => r.data), api("/courses/").then(r => r.data)])
+    const sections = (await api("/sections")).data
+    const courses = Auth.can("courses.view") ? (await api("/courses/")).data : UI.coursesFrom(sections)
     panel.innerHTML = `<div class="list-tools">
             <select data-course aria-label="Course"><option value="">All courses</option>
                 ${courses.map(c => `<option value="${c.id}">${UI.esc(c.code)}</option>`).join("")}</select>

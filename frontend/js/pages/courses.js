@@ -51,7 +51,7 @@ Pages.push({
                         { label: "Code", value: r => r.code },
                         { label: "Descriptive title", value: r => r.title },
                         { label: "Units", value: r => r.units },
-                    ], data.subjects) : UI.empty("No subjects added to this course yet.")
+                    ], data.subjects) : UI.empty(Auth.user.role === "instructor" ? "You don't teach any subject in this course yet." : "No subjects added to this course yet.")
                 } catch (err) {
                     dialog.body.innerHTML = UI.errorState(err.message)
                 }

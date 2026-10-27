@@ -76,15 +76,25 @@ async function api(path, { method = "GET", body, query } = {}) {
     }
     const headers = {}
     if (body !== undefined) headers["Content-Type"] = "application/json"
-    if (Auth.token) headers.Authorization = `Bearer ${Auth.token}`
+    return send(path, url, {
+        method,
+        headers,
+        body: body === undefined ? undefined : JSON.stringify(body),
+    })
+}
 
+// Uploads one file as multipart/form-data (the browser sets the boundary).
+function apiUpload(path, file, { field = "photo", method = "PUT" } = {}) {
+    const form = new FormData()
+    form.append(field, file)
+    return send(path, API + path, { method, headers: {}, body: form })
+}
+
+async function send(path, url, init) {
+    if (Auth.token) init.headers.Authorization = `Bearer ${Auth.token}`
     let response
     try {
-        response = await fetch(url, {
-            method,
-            headers,
-            body: body === undefined ? undefined : JSON.stringify(body),
-        })
+        response = await fetch(url, init)
     } catch {
         throw new Error("Cannot reach the server. Make sure the backend is running on port 8000.")
     }
@@ -95,4 +105,18 @@ async function api(path, { method = "GET", body, query } = {}) {
     }
     if (!response.ok) throw new Error(errorMessage(data, response.status))
     return data
+}
+
+// Protected images can't use a plain <img src> (it can't send the sign-in
+// token), so they are fetched and shown through a local object URL.
+const imageCache = new Map()
+
+function apiImage(path) {
+    if (!imageCache.has(path)) {
+        imageCache.set(path, fetch(API + path, { headers: Auth.token ? { Authorization: `Bearer ${Auth.token}` } : {} })
+            .then(res => (res.ok ? res.blob() : null))
+            .then(blob => (blob ? URL.createObjectURL(blob) : null))
+            .catch(() => null))
+    }
+    return imageCache.get(path)
 }

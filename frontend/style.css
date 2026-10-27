@@ -355,16 +355,20 @@ input[type=checkbox] {
     color: var(--text-2);
 }
 
-.brand-mark {
-    width: 22px;
-    height: 22px;
+/* School logo (cropped from pdnhsLogo.png to a transparent circle) */
+.brand-logo {
+    width: 30px;
+    height: 30px;
     flex: none;
-    border-radius: 4px;
-    background:
-        linear-gradient(#ffffff 0 0) 5px 6px / 12px 2px no-repeat,
-        linear-gradient(#ffffff 0 0) 5px 10px / 12px 2px no-repeat,
-        linear-gradient(#ffffff 0 0) 5px 14px / 8px 2px no-repeat,
-        linear-gradient(135deg, #2886de, #0f548c);
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .85);
+}
+
+.brand-logo-lg {
+    width: 64px;
+    height: 64px;
+    box-shadow: var(--shadow-4);
 }
 
 /* ---------- App layout ---------- */
@@ -390,13 +394,6 @@ input[type=checkbox] {
     z-index: 5;
 }
 
-.appbar .brand-mark {
-    background:
-        linear-gradient(var(--appbar-bg) 0 0) 5px 6px / 12px 2px no-repeat,
-        linear-gradient(var(--appbar-bg) 0 0) 5px 10px / 12px 2px no-repeat,
-        linear-gradient(var(--appbar-bg) 0 0) 5px 14px / 8px 2px no-repeat,
-        #ffffff;
-}
 
 .appbar-title {
     font-weight: 600;
@@ -447,10 +444,36 @@ input[type=checkbox] {
 
 .menu-header {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: 10px;
     padding: 8px 10px 10px;
     border-bottom: 1px solid var(--stroke-soft);
     margin-bottom: 4px;
+}
+
+.menu-identity {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.menu-identity > * {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.avatar-md {
+    width: 44px;
+    height: 44px;
+    font-size: 15px;
+}
+
+/* Photo inside the white app-bar badge */
+.avatar.has-photo {
+    color: transparent;
+    background-size: cover;
+    background-position: center;
 }
 
 .menu button {
@@ -898,6 +921,91 @@ a.stat-tile:focus-visible {
 
 .panel .list-tools select {
     flex: 0 1 150px;
+}
+
+/* ---------- Student photos ---------- */
+
+.avatar-img {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    border-radius: 50%;
+    background: var(--brand-tint) center / cover no-repeat;
+    color: var(--brand-fg);
+    font-weight: 600;
+    overflow: hidden;
+}
+
+.avatar-img.has-photo {
+    color: transparent;
+}
+
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+}
+
+.avatar-lg {
+    width: 88px;
+    height: 88px;
+    font-size: 24px;
+}
+
+.avatar-lg .icon {
+    width: 40px;
+    height: 40px;
+}
+
+.avatar-xl {
+    width: 72px;
+    height: 72px;
+    font-size: 22px;
+}
+
+.name-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.photo-picker {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.photo-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.photo-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.photo-buttons label.btn:focus-within {
+    outline: 2px solid var(--text);
+    outline-offset: 1px;
+}
+
+.profile-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 4px;
+}
+
+.profile-head > div {
+    display: flex;
+    flex-direction: column;
+}
+
+.profile-head strong {
+    font-size: 18px;
 }
 
 .day-pill {

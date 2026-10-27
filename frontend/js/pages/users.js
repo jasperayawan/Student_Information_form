@@ -14,7 +14,7 @@ Pages.push({
     async render(el) {
         const instructors = (await api("/instructors/")).data
         el.innerHTML = `<p class="muted">Student and instructor accounts must be linked to their record.
-            IT administrators have read-only access to all records and reports.</p>
+            IT administrators can view all records and reports, and manage class scheduling (assign instructors, rooms and schedules).</p>
             <div class="page-actions"><button type="button" class="btn btn-primary" data-add>Create account</button></div>
             <div data-list></div>`
 

@@ -37,7 +37,8 @@ STUDENTS_COLUMNS = f"""
         previous_attainment TEXT NOT NULL DEFAULT '',
         course_id INTEGER NOT NULL REFERENCES courses(id) ON DELETE RESTRICT,
         year_level INTEGER CHECK (year_level BETWEEN 1 AND 6),
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        photo TEXT  -- file name in database/uploads/students, or NULL
 """
 
 STUDENTS_TABLE = f"CREATE TABLE IF NOT EXISTS students({STUDENTS_COLUMNS})"

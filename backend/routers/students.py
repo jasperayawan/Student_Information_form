@@ -1,9 +1,11 @@
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi.responses import FileResponse
 
 from core.db_helpers import count, fetch_all, fetch_one_or_404, insert_row, update_row
 from core.ids import generate_student_number
-from core.security import require
+from core.security import get_current_user, require
+from core.uploads import MAX_PHOTO_BYTES, MEDIA_TYPES, delete_photo, photo_path, save_photo, validate_photo
 from database import get_db
 from schemas.student import StudentCreate, StudentSelfUpdate, StudentUpdate
 
@@ -161,9 +163,49 @@ def delete_student(student_id: int, user=Depends(require("students.manage")),
                    "Drop the enrollments first.",
         )
     # The linked login account (if any) is removed by ON DELETE CASCADE.
+    photo = conn.execute("SELECT photo FROM students WHERE id = ?", (student_id,)).fetchone()["photo"]
     conn.execute("DELETE FROM students WHERE id = ?", (student_id,))
     conn.commit()
+    delete_photo(photo)
     return {
         "success": True,
         "message": "Student deleted successfully"
     }
+
+
+# ---------- Student photo ----------
+
+@router.get("/{student_id}/photo")
+def get_student_photo(student_id: int, user=Depends(get_current_user), conn=Depends(get_db)):
+    """Photos are personal data: staff who can view students, or the
+    student themselves, may load them."""
+    if "students.view" not in user["permissions"] and user["student_id"] != student_id:
+        raise HTTPException(status_code=403, detail="You do not have permission to view this photo.")
+    student = get_student(conn, student_id)
+    path = photo_path(student["photo"])
+    if path is None:
+        raise HTTPException(status_code=404, detail="This student has no photo.")
+    return FileResponse(path, media_type=MEDIA_TYPES[path.suffix],
+                        headers={"Cache-Control": "private, max-age=86400"})
+
+
+@router.put("/{student_id}/photo")
+async def upload_student_photo(student_id: int, photo: UploadFile = File(...),
+                               user=Depends(require("students.manage")), conn=Depends(get_db)) -> dict[str, Any]:
+    old = get_student(conn, student_id)["photo"]
+    data = await photo.read(MAX_PHOTO_BYTES + 1)
+    name = save_photo(data, validate_photo(data))
+    update_row(conn, "students", student_id, {"photo": name})
+    conn.commit()
+    delete_photo(old)
+    return {"success": True, "message": "Photo uploaded.", "data": get_student(conn, student_id)}
+
+
+@router.delete("/{student_id}/photo")
+def remove_student_photo(student_id: int, user=Depends(require("students.manage")),
+                         conn=Depends(get_db)) -> dict[str, Any]:
+    old = get_student(conn, student_id)["photo"]
+    update_row(conn, "students", student_id, {"photo": None})
+    conn.commit()
+    delete_photo(old)
+    return {"success": True, "message": "Photo removed."}

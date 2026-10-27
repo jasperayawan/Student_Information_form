@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from core.db_helpers import fetch_all, fetch_one_or_404, update_row
 from core.scheduling import MIN_SUBJECTS_PER_COURSE
 from core.security import require
+from routers.subjects import assigned_instructor
 from database import get_db
 from schemas.catalog import CourseUpdate
 
@@ -34,9 +35,18 @@ def get_courses(user=Depends(require("courses.view")), conn=Depends(get_db)) -> 
 def get_course(course_id: int, user=Depends(require("courses.view")), conn=Depends(get_db)) -> dict[str, Any]:
     course = _with_rule(fetch_one_or_404(conn, COURSE_SELECT + " WHERE c.id = ?", (course_id,),
                                          "Course not found."))
-    course["subjects"] = fetch_all(
-        conn, "SELECT * FROM subjects WHERE course_id = ? ORDER BY code", (course_id,)
-    )
+    teacher = assigned_instructor(user)
+    if teacher is None:
+        course["subjects"] = fetch_all(
+            conn, "SELECT * FROM subjects WHERE course_id = ? ORDER BY code", (course_id,)
+        )
+    else:
+        course["subjects"] = fetch_all(
+            conn,
+            """SELECT * FROM subjects sub WHERE course_id = ? AND EXISTS
+               (SELECT 1 FROM sections s WHERE s.subject_id = sub.id AND s.instructor_id = ?) ORDER BY code""",
+            (course_id, teacher),
+        )
     return {"success": True, "data": course}
 
 

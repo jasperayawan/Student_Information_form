@@ -42,13 +42,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         loginView.hidden = true
         appView.hidden = false
-        document.getElementById("account-name").textContent = Auth.user.username
-        document.getElementById("account-role").textContent = ROLE_NAMES[Auth.user.role]
-        accountButton.textContent = Auth.user.username.slice(0, 2).toUpperCase()
-        accountButton.title = `${Auth.user.username} (${ROLE_NAMES[Auth.user.role]})`
+        showAccount(Auth.user)
         nav.innerHTML = visiblePages()
             .map(page => `<a href="#/${page.id}" data-page="${page.id}">${icon(page.id)}<span>${UI.esc(page.nav)}</span></a>`).join("")
         route()
+    }
+
+    // Account badge (top-right) and menu header: the person's photo when
+    // they have one (students), otherwise their initials.
+    function showAccount(user) {
+        const name = user.display_name || user.username
+        const initials = UI.initials(name)
+        const photoBox = document.getElementById("account-photo")
+        document.getElementById("account-name").textContent = name
+        document.getElementById("account-username").textContent = name === user.username ? "" : `@${user.username}`
+        document.getElementById("account-role").textContent = ROLE_NAMES[user.role]
+        accountButton.title = `${name} (${ROLE_NAMES[user.role]})`
+        for (const el of [accountButton, photoBox]) {
+            el.textContent = initials
+            el.style.backgroundImage = ""
+            el.classList.remove("has-photo")
+        }
+        if (user.photo && user.student_id) {
+            apiImage(`/students/${user.student_id}/photo?v=${encodeURIComponent(user.photo)}`).then(url => {
+                if (url && Auth.user === user) [accountButton, photoBox].forEach(el => UI.showPhoto(el, url))
+            })
+        }
     }
 
     function setDrawer(open) {

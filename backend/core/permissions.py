@@ -17,21 +17,25 @@ ADMIN_PERMISSIONS = {
 }
 
 # IT administrators (role key "college_admin", shown as "IT Administrator")
-# have oversight: they can see every record and report but cannot change
-# data. Add "*.manage" entries here if they should edit specific modules.
+# can see every record and report, and manage class scheduling: create
+# classes, assign/reassign instructors, rooms and time slots. Everything else
+# is view-only. Add "*.manage" entries here to give them more.
 COLLEGE_ADMIN_PERMISSIONS = {
     "dashboard.view", "reports.view",
     "students.view", "instructors.view", "courses.view", "subjects.view",
-    "sections.view", "classrooms.view", "enrollments.view", "settings.view",
+    "sections.view", "sections.manage", "classrooms.view", "enrollments.view", "settings.view",
 }
 
+# Instructors see only the subjects they teach (see routers/subjects.py) and
+# have no Courses page.
 INSTRUCTOR_PERMISSIONS = {
-    "dashboard.view", "courses.view", "subjects.view", "sections.view",
+    "dashboard.view", "subjects.view", "sections.view",
     "self.teaching",
 }
 
+# Students have no Courses page; their own course shows on My Profile.
 STUDENT_PERMISSIONS = {
-    "dashboard.view", "courses.view", "subjects.view", "sections.view",
+    "dashboard.view", "subjects.view", "sections.view",
     "self.profile", "self.enroll",
 }
 

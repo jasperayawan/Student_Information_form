@@ -173,7 +173,8 @@ def _rebuild_students(conn, version: int) -> None:
     conn.execute("BEGIN")
     try:
         conn.execute(f"CREATE TABLE students_new({schema.STUDENTS_COLUMNS})")
-        columns = [row["name"] for row in conn.execute("PRAGMA table_info(students)")]
+        new_columns = {row["name"] for row in conn.execute("PRAGMA table_info(students_new)")}
+        columns = [row["name"] for row in conn.execute("PRAGMA table_info(students)") if row["name"] in new_columns]
         marks = ", ".join("?" for _ in columns)
         for row in conn.execute("SELECT * FROM students ORDER BY id").fetchall():
             values = dict(row)
@@ -210,6 +211,15 @@ def _migrate_to_v3(conn) -> None:
     conn.commit()
 
 
+def _migrate_to_v5(conn) -> None:
+    """Students get an optional photo (a file name; the image lives in
+    database/uploads/students)."""
+    if "photo" not in _columns(conn, "students"):
+        conn.execute("ALTER TABLE students ADD COLUMN photo TEXT")
+    conn.execute("PRAGMA user_version = 5")
+    conn.commit()
+
+
 def run_migrations() -> None:
     conn = get_connection()
     try:
@@ -222,5 +232,7 @@ def run_migrations() -> None:
             _migrate_to_v3(conn)
         if version < 4:
             _rebuild_students(conn, 4)   # student IDs become YYYY-NNNN
+        if version < 5:
+            _migrate_to_v5(conn)
     finally:
         conn.close()

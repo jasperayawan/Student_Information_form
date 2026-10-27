@@ -1,2 +1,5 @@
 # Automatic copies made before database migrations
 backend/database/backups/
+
+# Uploaded student photos
+backend/database/uploads/

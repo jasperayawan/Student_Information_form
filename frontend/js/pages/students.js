@@ -1,9 +1,12 @@
 const YEAR_LEVELS = [1, 2, 3, 4, 5, 6].map(n => ({ value: n, label: `Year ${n}` }))
+const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"]
+const PHOTO_MAX_BYTES = 2 * 1024 * 1024
 
 function studentFields(courses) {
     const personal = "Personal Background"
     const education = "Educational Background"
     return [
+        { name: "photo", label: "Student photo", section: personal, type: "photo" },
         { name: "student_number", label: "Student ID", section: personal, display: true,
           help: "Generated automatically: registration year + 4 random digits." },
         { name: "name", label: "Full name", section: personal, required: true, minlength: 2, maxlength: 120 },
@@ -27,7 +30,9 @@ function studentFields(courses) {
 }
 
 function studentDetails(s) {
-    return `<h3>Personal Background</h3>${UI.details([
+    return `<div class="profile-head">${UI.avatar(s, "xl")}<div><strong>${UI.esc(s.name)}</strong>
+            <span class="muted">${UI.esc(s.student_number)} · ${UI.esc(s.course)}</span></div></div>
+        <h3>Personal Background</h3>${UI.details([
         ["Student ID", s.student_number], ["Full name", s.name], ["Date of birth", s.birth_date],
         ["Age", s.age], ["Sex", s.sex], ["Address", s.address], ["Contact number", s.contact_number],
         ["Email", s.email],
@@ -71,7 +76,7 @@ Pages.push({
                 rows = res.data
                 tableEl.innerHTML = rows.length ? UI.table([
                     { label: "Student ID", value: r => r.student_number },
-                    { label: "Name", value: r => r.name },
+                    { label: "Name", html: r => `<span class="name-cell">${UI.avatar(r)}<span>${UI.esc(r.name)}</span></span>` },
                     { label: "Sex", value: r => r.sex },
                     { label: "Course", value: r => r.course },
                     { label: "Year", value: r => r.year_level || "", num: true },
@@ -82,6 +87,7 @@ Pages.push({
                 { pageSize: Infinity })
                     : UI.empty(state.q || state.course_id ? "No students match your search." : "No students registered yet.")
                 pagerEl.innerHTML = UI.pagerHtml(res.page, res.page_size, res.total)
+                UI.loadPhotos(tableEl)
             } catch (err) {
                 tableEl.innerHTML = UI.errorState(err.message)
                 pagerEl.innerHTML = ""
@@ -105,11 +111,21 @@ Pages.push({
             fields: studentFields(courses).filter(f => student || f.name !== "student_number"),
             values: student || {},
             submitText: student ? "Save Changes" : "Register",
-            async onSubmit(body) {
+            afterRender: form => bindPhotoPicker(form, student),
+            async onSubmit(body, form) {
                 const res = student
                     ? await api(`/students/${student.id}`, { method: "PUT", body })
                     : await api("/students/", { method: "POST", body })
-                UI.toast(res.message)
+                // The record is saved first; a photo problem must not make the
+                // dialog stay open (re-submitting would register the student twice).
+                const id = res.data.id
+                try {
+                    if (form.photoFile) await apiUpload(`/students/${id}/photo`, form.photoFile)
+                    else if (form.photoRemoved && student?.photo) await api(`/students/${id}/photo`, { method: "DELETE" })
+                    UI.toast(res.message)
+                } catch (err) {
+                    UI.toast(`${res.message} The photo could not be saved: ${err.message}`, "error")
+                }
                 await load()
             },
         })
@@ -134,6 +150,7 @@ Pages.push({
                             { label: "Instructor", value: r => r.instructor_name || "TBA" },
                         ], data.enrollments)
                         : UI.empty("Not enrolled in any class yet."))
+                    UI.loadPhotos(dialog.body)
                 } catch (err) {
                     dialog.body.innerHTML = UI.errorState(err.message)
                 }
@@ -167,6 +184,7 @@ Pages.push({
             ${studentDetails(student)}
             <p class="muted">To correct your name, birth date, course or other records, please contact the registrar.</p>
         </section>`
+        UI.loadPhotos(el)
         const reload = () => this.render(el)
         el.querySelector("[data-edit]").addEventListener("click", () => UI.formDialog({
             title: "Update contact details",
@@ -184,3 +202,48 @@ Pages.push({
         }))
     },
 })
+
+// Wires the photo picker in the student form: preview, client-side checks
+// (the server checks again), and remove. The chosen file is kept on the
+// form element and uploaded after the student record is saved.
+function bindPhotoPicker(form, student) {
+    const input = form.querySelector("input[type=file][name=photo]")
+    const preview = form.querySelector("[data-photo-preview]")
+    const remove = form.querySelector("[data-photo-remove]")
+    const error = form.querySelector(".form-error")
+    const placeholder = preview.innerHTML
+    const reset = () => {
+        preview.style.backgroundImage = ""
+        preview.classList.remove("has-photo")
+        preview.innerHTML = placeholder
+    }
+    const show = url => { preview.innerHTML = ""; UI.showPhoto(preview, url) }
+
+    if (student?.photo) {
+        remove.hidden = false
+        apiImage(`/students/${student.id}/photo?v=${encodeURIComponent(student.photo)}`)
+            .then(url => { if (url && !form.photoFile && !form.photoRemoved) show(url) })
+    }
+
+    input.addEventListener("change", () => {
+        const file = input.files[0]
+        input.value = ""
+        if (!file) return
+        const problem = !PHOTO_TYPES.includes(file.type) ? "Please choose a JPG, PNG or WebP image."
+            : file.size > PHOTO_MAX_BYTES ? "The photo is larger than 2 MB." : ""
+        error.textContent = problem
+        error.hidden = !problem
+        if (problem) return
+        form.photoFile = file
+        form.photoRemoved = false
+        show(URL.createObjectURL(file))
+        remove.hidden = false
+    })
+
+    remove.addEventListener("click", () => {
+        form.photoFile = null
+        form.photoRemoved = true
+        reset()
+        remove.hidden = true
+    })
+}
